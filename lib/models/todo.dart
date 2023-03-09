@@ -34,7 +34,7 @@ class Todo {
         username: json[TodoFields.username] as String,
         title: json[TodoFields.title] as String,
         done: json[TodoFields.done] == 1 ? true : false,
-        created: DateTime.parse([TodoFields.created] as String),
+        created: DateTime.parse(json[TodoFields.created] as String),
       );
 
   @override
@@ -44,7 +44,7 @@ class Todo {
   }
 
   @override
-  int get hashcode {
+  int get hashCode {
     return hashValues(username, title);
   }
 }

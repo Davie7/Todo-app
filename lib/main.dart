@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:todo_app/services/todo_service.dart';
+import 'package:todo_app/services/user_service.dart';
 
 import 'routes/routes.dart';
 
@@ -11,10 +14,20 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      initialRoute: RouteManager.loginPage,
-      onGenerateRoute: RouteManager.generateRoute,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: ((context) => UserService()),
+        ),
+        ChangeNotifierProvider(
+          create: ((context) => TodoService()),
+        ),
+      ],
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        initialRoute: RouteManager.loginPage,
+        onGenerateRoute: RouteManager.generateRoute,
+      ),
     );
   }
 }

@@ -37,6 +37,8 @@ dependencies:
   provider: ^5.0.0
   sqflite: 
   flutter_slidable: ^0.6.0
+  get: 
+  gap: ^2.0.0
 
 dev_dependencies:
   flutter_test:

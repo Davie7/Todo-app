@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:todo_app/models/user.dart';
+import 'package:todo_app/widgets/dialogs.dart';
 
+import '../services/user_service.dart';
 import '../widgets/app_textfield.dart';
+import '../widgets/box_decoration.dart';
 
 class Register extends StatefulWidget {
   const Register({Key? key}) : super(key: key);
@@ -33,13 +38,7 @@ class _RegisterState extends State<Register> {
       body: Stack(
         children: [
           Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.blue, Colors.black],
-              ),
-            ),
+            decoration: decoration,
             child: Center(
               child: SingleChildScrollView(
                 child: Column(
@@ -56,16 +55,41 @@ class _RegisterState extends State<Register> {
                       ),
                     ),
                     Focus(
-                      onFocusChange: (value) async {},
+                      onFocusChange: (value) async {
+                        if (!value) {
+                          String result = await context
+                              .read<UserService>()
+                              .checkIfUserExists(
+                                usernameController.text.trim(),
+                              );
+                          if (result == 'Ok') {
+                            context.read<UserService>().userExists = true;
+                          } else {
+                            context.read<UserService>().userExists = false;
+                            if (!result.contains(
+                                'The user does not exist in the database. Please register first.')) {
+                              showSnackBar(context, result);
+                            }
+                          }
+                        }
+                      },
                       child: AppTextField(
                         controller: usernameController,
                         labelText: 'Please enter your username',
                       ),
                     ),
-                    Text(
-                      'username exists, please choose another',
-                      style: TextStyle(
-                          color: Colors.red, fontWeight: FontWeight.w800),
+                    Selector<UserService, bool>(
+                      selector: (context, value) => value.userExists,
+                      builder: (context, value, child) {
+                        return value
+                            ? Text(
+                                'username exists, please choose another',
+                                style: TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.w800),
+                              )
+                            : Container();
+                      },
                     ),
                     AppTextField(
                       controller: nameController,
@@ -74,8 +98,30 @@ class _RegisterState extends State<Register> {
                     Padding(
                       padding: const EdgeInsets.only(top: 8.0),
                       child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(primary: Colors.blue),
-                        onPressed: () async {},
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.purple),
+                        onPressed: () async {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          if (usernameController.text.isEmpty ||
+                              nameController.text.isEmpty) {
+                            showSnackBar(context, 'Please enter all fields');
+                          } else {
+                            User user = User(
+                              username: usernameController.text.trim(),
+                              name: nameController.text.trim(),
+                            );
+                            String result = await context
+                                .read<UserService>()
+                                .createUser(user);
+                            if (result != 'Ok') {
+                              showSnackBar(context, result);
+                            } else {
+                              showSnackBar(
+                                  context, 'New user registration successful');
+                              Navigator.pop(context);
+                            }
+                          }
+                        },
                         child: Text('Register'),
                       ),
                     ),
@@ -98,6 +144,11 @@ class _RegisterState extends State<Register> {
               ),
             ),
           ),
+          Selector<UserService, bool>(
+              selector: (context, value) => value.busyCreate,
+              builder: (context, value, child) {
+                return value ? AppProgressIndicator() : Container();
+              })
         ],
       ),
     );

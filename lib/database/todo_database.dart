@@ -6,9 +6,7 @@ import '../models/todo.dart';
 import '../models/user.dart';
 
 class TodoDatabase {
-  //Creating a single instance of the database
   static final TodoDatabase instance = TodoDatabase._initialize();
-  // this is a link to the database
   static Database? _database;
   TodoDatabase._initialize();
 
@@ -17,35 +15,27 @@ class TodoDatabase {
     final textType = 'TEXT NOT NULL';
     final boolType = 'BOOLEAN NOT NULL';
 
-// go to the database and execute sth i.e creating the userTable.
-    await db.execute('''CREATE TABLE $userTable(
+    await db.execute('''CREATE TABLE $userTable (
       ${UserFields.username} $userUsernameType,
-      ${UserFields.name} $textType,
-      
+      ${UserFields.name} $textType
     )''');
 
-    await db.execute('''CREATE TABLE $todoTable(
+    await db.execute('''CREATE TABLE $todoTable (
       ${TodoFields.username} $textType,
       ${TodoFields.title} $textType,
       ${TodoFields.done} $boolType,
       ${TodoFields.created} $textType,
       FOREIGN KEY (${TodoFields.username}) REFERENCES $userTable (${UserFields.username})
     )''');
-// Using the foreign key to show that the username in the todoTable is being refrenced from the userTable.
   }
 
-  // The function below ensures that the foreign key works.
   Future _onConfigure(Database db) async {
-    await db.execute('PRAGMA foreign keys = ON');
+    await db.execute('PRAGMA foreign_keys = ON');
   }
 
-  // Opening the database
-  Future<Database> _initDB(String filename) async {
-    // for this specific app there is a database path on the phone.
-    // this code gets the path to the database where it will be saved on the phone.
+  Future<Database> _initDB(String fileName) async {
     final databasePath = await getDatabasesPath();
-    // this path combines the path to your database and filename to give the path where the specific database will reside.
-    final path = join(databasePath, filename);
+    final path = join(databasePath, fileName);
 
     return await openDatabase(
       path,
@@ -55,7 +45,6 @@ class TodoDatabase {
     );
   }
 
-  // Closing the database
   Future close() async {
     final db = await instance.database;
     db!.close();
@@ -70,7 +59,6 @@ class TodoDatabase {
     }
   }
 
-  // Start of CRUD operations
   Future<User> createUser(User user) async {
     final db = await instance.database;
     await db!.insert(userTable, user.toJson());
@@ -89,28 +77,35 @@ class TodoDatabase {
     if (maps.isNotEmpty) {
       return User.fromJson(maps.first);
     } else {
-      throw Exception('$username not found in the database');
+      throw Exception('$username not found in the database.');
     }
   }
 
-  // the code below shows how to query the database for multiple users.
-  // we won't use this code. It is just practice code.
   Future<List<User>> getAllUsers() async {
     final db = await instance.database;
-    final result =
-        await db!.query(userTable, orderBy: '${UserFields.username} ASC');
+    final result = await db!.query(
+      userTable,
+      orderBy: '${UserFields.username} ASC',
+    );
     return result.map((e) => User.fromJson(e)).toList();
   }
 
-  // updating a specific record
   Future<int> updateUser(User user) async {
     final db = await instance.database;
     return db!.update(
       userTable,
-      // the record we are updating is user.toJson()
       user.toJson(),
-      where: '${UserFields.username}',
+      where: '${UserFields.username} = ?',
       whereArgs: [user.username],
+    );
+  }
+
+  Future<int> deleteUser(String username) async {
+    final db = await instance.database;
+    return db!.delete(
+      userTable,
+      where: '${UserFields.username} = ?',
+      whereArgs: [username],
     );
   }
 
@@ -125,6 +120,7 @@ class TodoDatabase {
 
   Future<int> toggleTodoDone(Todo todo) async {
     final db = await instance.database;
+    todo.done = !todo.done;
     return db!.update(
       todoTable,
       todo.toJson(),
@@ -132,4 +128,26 @@ class TodoDatabase {
       whereArgs: [todo.title, todo.username],
     );
   }
+
+  Future<List<Todo>> getTodos(String username) async {
+    final db = await instance.database;
+    final result = await db!.query(
+      todoTable,
+      orderBy: '${TodoFields.created} DESC',
+      where: '${TodoFields.username} = ?',
+      whereArgs: [username],
+    );
+    return result.map((e) => Todo.fromJson(e)).toList();
+  }
+
+  Future<int> deleteTodo(Todo todo) async {
+    final db = await instance.database;
+    return db!.delete(
+      todoTable,
+      where: '${TodoFields.title} = ? AND ${TodoFields.username} = ?',
+      whereArgs: [todo.title, todo.username],
+    );
+  }
 }
+
+
